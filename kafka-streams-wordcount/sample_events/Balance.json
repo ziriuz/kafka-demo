@@ -1,0 +1,10 @@
+{
+  "eventHeader": {
+    "source": {"string": "CustomerService"},
+    "info": null,
+    "sendTime": 1681064712053
+  },
+  "account": "123412341234",
+  "amount": 100,
+  "timestamp": 1681064712053
+}

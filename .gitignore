@@ -1,0 +1,9 @@
+build/
+out/
+target/
+bin/
+.gradle/
+.idea/
+.vscode/
+
+

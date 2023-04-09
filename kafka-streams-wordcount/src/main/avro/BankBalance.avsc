@@ -1,0 +1,12 @@
+{
+     "type": "record",
+     "namespace": "dev.siriuz.model",
+     "name": "BankBalance",
+     "doc": "Avro Schema for our Customer",
+     "fields": [
+       { "name": "eventHeader", "type": "dev.siriuz.model.EventHeader", "doc": "Event header, includes metadata of event" },
+       { "name": "account", "type": "string", "doc": "Bank account number" },
+       { "name": "amount", "type": "int", "doc": "Balance amount" },
+       { "name": "timestamp", "type": "long", "doc": "Timestamp of the last transaction" }
+     ]
+}

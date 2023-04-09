@@ -1,0 +1,15 @@
+pluginManagement {
+    repositories {
+        gradlePluginPortal()
+        mavenCentral()
+    }
+}
+
+rootProject.name = 'kafka-demo'
+include 'kafka-basics'
+include 'kafka-producer-wikimedia'
+include 'kafka-consumer-opensearch'
+include 'kafka-streams-wordcount'
+include 'kafka-spring-demo'
+include 'kafka-gatling-demo'
+

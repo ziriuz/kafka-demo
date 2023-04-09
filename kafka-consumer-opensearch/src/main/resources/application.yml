@@ -1,0 +1,14 @@
+opensearch:
+  connection: "http://localhost:9200"
+  cloud-connection: "https://c9p5mwld41:45zeygn9hy@kafka-course-2322630105.eu-west-1.bonsaisearch.net:443"
+  index:
+    wikimedia: wikimedia
+
+kafka:
+  consumer:
+    group_id: wikimedia-changes-consumer
+  bootstrap:
+    host: localhost
+    servers: ${kafka.bootstrap.host}:9092
+  topic:
+    wikimedia: wikimedia.recentchanges

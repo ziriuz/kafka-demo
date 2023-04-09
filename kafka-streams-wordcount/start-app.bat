@@ -1,0 +1,1 @@
+ C:\Users\siriuz\.jdks\openjdk-16.0.1\bin\java.exe -jar .\target\kafka-streams-wordcount-1.0-SNAPSHOT-jar-with-dependencies.jar

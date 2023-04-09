@@ -1,0 +1,11 @@
+{
+     "type": "record",
+     "namespace": "dev.siriuz.model",
+     "name": "BankTransaction",
+     "doc": "Avro Schema for our Customer",
+     "fields": [
+       { "name": "account", "type": "string", "doc": "Bank account number" },
+       { "name": "amount", "type": "int", "doc": "Transaction amount" },
+       { "name": "timestamp", "type": "int", "doc": "Timestamp of transaction" }
+     ]
+}
