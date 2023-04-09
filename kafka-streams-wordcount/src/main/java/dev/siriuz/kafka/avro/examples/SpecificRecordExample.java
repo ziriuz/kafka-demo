@@ -26,7 +26,6 @@ public class SpecificRecordExample {
         Path path = Paths.get("kafka-streams-wordcount","sample_events");
         File f = new File(path.toFile(),"Balance.json");
 
-        System.out.println(f.exists());
         final String jsonFileName = "kafka-streams-wordcount/sample_events/Balance.json";
 
         BankBalance balance = BankBalance.newBuilder()
@@ -36,41 +35,23 @@ public class SpecificRecordExample {
                 .setEventHeader(
                         EventHeader.newBuilder()
                                 .setSendTime(Instant.now().toEpochMilli())
+                                .setSource("Producer 01")
+                                .setInfo("json validation against avro schema sample")
                                 .build()
                 )
                 .build();
 
-        //AvroUtils.writeJsonFile(balance, jsonFileName);
-        System.out.println(BankBalance.getClassSchema());
+        AvroUtils.writeJsonFile(balance, jsonFileName, BankBalance.getClassSchema());
+        System.out.printf("Written to json %s\n", jsonFileName);
 
         try {
-            System.out.println("------- 1 -------");
-            BankBalance balance1 = AvroUtils.readJsonFile(jsonFileName);
-            System.out.println(balance1);
-            System.out.println("------- 1 -------");
-
-        }
-        catch (AvroTypeException e){
-            e.printStackTrace();
-        }
-
-        try {
-            System.out.println("------- 2 -------");
+            System.out.printf("Reading from json %s\n", jsonFileName);
             BankBalance balance2 = (BankBalance) AvroUtils.readJsonFile(jsonFileName, BankBalance.getClassSchema());
             System.out.println(balance2);
-            System.out.println("------- 2 -------");
-
         }
         catch (AvroTypeException e){
             e.printStackTrace();
         }
-
-
-
-
-
-
-
 
         // 0: Build customer (specific record)
         Customer.Builder customerBuilder = Customer.newBuilder();
@@ -88,7 +69,7 @@ public class SpecificRecordExample {
         final DatumWriter<Customer> datumWriter = new SpecificDatumWriter<>(Customer.class);
 
         try (DataFileWriter<Customer> dataFileWriter = new DataFileWriter<>(datumWriter)) {
-            dataFileWriter.create(customer.getSchema(), new File("customer-specific.avro"));
+            dataFileWriter.create(customer.getSchema(), new File(path.toFile(), "customer-specific.avro"));
             dataFileWriter.append(customer);
             System.out.println("successfully wrote customer-specific.avro");
         } catch (IOException e){
@@ -96,7 +77,7 @@ public class SpecificRecordExample {
         }
 
         // 2: Read Customer object from file
-        final File file = new File("customer-specific.avro");
+        final File file = new File(path.toFile(), "customer-specific.avro");
         final DatumReader<Customer> datumReader = new SpecificDatumReader<>(Customer.class);
         try (DataFileReader<Customer> dataFileReader = new DataFileReader<>(file, datumReader)) {
             System.out.println("Reading our specific record");

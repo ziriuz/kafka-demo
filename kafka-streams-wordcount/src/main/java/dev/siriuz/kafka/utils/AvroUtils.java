@@ -1,6 +1,5 @@
 package dev.siriuz.kafka.utils;
 
-import dev.siriuz.model.BankBalance;
 import org.apache.avro.Schema;
 import org.apache.avro.file.DataFileReader;
 import org.apache.avro.file.DataFileWriter;
@@ -10,10 +9,16 @@ import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.io.*;
 import org.apache.avro.specific.SpecificDatumReader;
 import org.apache.avro.specific.SpecificDatumWriter;
+import org.apache.avro.specific.SpecificRecord;
 
 import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 
 public class AvroUtils {
+
+    private static final DatumReader<SpecificRecord> specificDatumReader = new SpecificDatumReader<>();
+    private static final DatumWriter<SpecificRecord> specificDatumWriter = new SpecificDatumWriter<>();
 
     public static GenericRecord readAvroFileGeneric(String fileName, Schema avroSchema){
         final File file = new File(fileName);
@@ -45,7 +50,7 @@ public class AvroUtils {
     public static GenericRecord readJsonFileGeneric(String fileName, Schema schema){
         final DatumReader<GenericRecord> datumReader = new GenericDatumReader<>(schema);
         GenericRecord record = null;
-        try (InputStream inputStream = new FileInputStream(fileName)){
+        try (InputStream inputStream = Files.newInputStream(Paths.get(fileName))){
             Decoder decoder = DecoderFactory.get().jsonDecoder(schema, inputStream);
             record = datumReader.read(null, decoder);
         } catch (IOException e) {
@@ -57,7 +62,7 @@ public class AvroUtils {
     public static void writeJsonFileGeneric(GenericRecord record, String fileName){
         final DatumWriter<GenericRecord> datumWriter = new GenericDatumWriter<>(record.getSchema());
         try {
-            OutputStream stream = new FileOutputStream(fileName);
+            OutputStream stream = Files.newOutputStream(Paths.get(fileName));
             Encoder encoder =  EncoderFactory.get().jsonEncoder(record.getSchema(), stream);
             datumWriter.write(record, encoder);
             encoder.flush();
@@ -66,42 +71,27 @@ public class AvroUtils {
         }
     }
 
-    public static BankBalance readJsonFile(String fileName){
-        Schema avroSchema = BankBalance.getClassSchema();
-        final DatumReader<BankBalance> datumReader = new SpecificDatumReader<>(BankBalance.getClassSchema());
-        BankBalance record = null;
-        try (InputStream inputStream = new FileInputStream(fileName)){
-            Decoder decoder = DecoderFactory.get().jsonDecoder(avroSchema, inputStream);
-            record = datumReader.read(null, decoder);
+    public static Object readJsonFile(String fileName, Schema schema){
+        specificDatumReader.setSchema(schema);
+        SpecificRecord record = null;
+        try (InputStream inputStream = Files.newInputStream(Paths.get(fileName))){
+            Decoder decoder = DecoderFactory.get().jsonDecoder(schema, inputStream);
+            record = specificDatumReader.read(null, decoder);
         } catch (IOException e) {
             e.printStackTrace();
         }
         return record;
     }
 
-    public static void writeJsonFile(BankBalance record, String fileName){
-        Schema avroSchema = BankBalance.getClassSchema();
-        final DatumWriter<GenericRecord> datumWriter = new SpecificDatumWriter<>(avroSchema);
+    public static void writeJsonFile(SpecificRecord record, String fileName, Schema schema){
+        specificDatumWriter.setSchema(schema);
         try {
-            OutputStream stream = new FileOutputStream(fileName);
-            Encoder encoder =  EncoderFactory.get().jsonEncoder(avroSchema, stream);
-            datumWriter.write(record, encoder);
+            OutputStream stream = Files.newOutputStream(Paths.get(fileName));
+            Encoder encoder =  EncoderFactory.get().jsonEncoder(schema, stream);
+            specificDatumWriter.write(record, encoder);
             encoder.flush();
         } catch (IOException e) {
             e.printStackTrace();
         }
-    }
-
-    public static Object readJsonFile(String fileName, Schema schema){
-
-        final DatumReader<Object> datumReader = new SpecificDatumReader<>(schema);
-        Object record = null;
-        try (InputStream inputStream = new FileInputStream(fileName)){
-            Decoder decoder = DecoderFactory.get().jsonDecoder(schema, inputStream);
-            record = datumReader.read(null, decoder);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        return record;
     }
 }
