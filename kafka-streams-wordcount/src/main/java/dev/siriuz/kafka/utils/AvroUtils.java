@@ -71,7 +71,7 @@ public class AvroUtils {
         }
     }
 
-    public static Object readJsonFile(String fileName, Schema schema){
+    public static SpecificRecord readJsonFile(String fileName, Schema schema){
         specificDatumReader.setSchema(schema);
         SpecificRecord record = null;
         try (InputStream inputStream = Files.newInputStream(Paths.get(fileName))){
