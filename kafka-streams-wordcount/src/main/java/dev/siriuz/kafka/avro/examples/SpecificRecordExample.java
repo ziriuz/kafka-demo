@@ -28,18 +28,24 @@ public class SpecificRecordExample {
 
         final String jsonFileName = "kafka-streams-wordcount/sample_events/Balance.json";
 
+        EventHeader header = EventHeader.newBuilder()
+                .setSendTime(Instant.now().toEpochMilli())
+                .setSource("Producer 01")
+                .setInfo("json validation against avro schema sample")
+                .build();
         BankBalance balance = BankBalance.newBuilder()
                 .setAccount("123412341234")
                 .setAmount(100)
                 .setTimestamp(Instant.now().toEpochMilli())
                 .setEventHeader(
-                        EventHeader.newBuilder()
-                                .setSendTime(Instant.now().toEpochMilli())
-                                .setSource("Producer 01")
-                                .setInfo("json validation against avro schema sample")
-                                .build()
+                        header
                 )
                 .build();
+
+        BankBalance balance1 = (BankBalance) AvroUtils.validate(balance);
+        System.out.println("= balance1 ===============");
+        System.out.println(balance1);
+        System.out.println("= balance1 ===============");
 
         AvroUtils.writeJsonFile(balance, jsonFileName, BankBalance.getClassSchema());
         System.out.printf("Written to json %s\n", jsonFileName);
@@ -48,6 +54,10 @@ public class SpecificRecordExample {
             System.out.printf("Reading from json %s\n", jsonFileName);
             BankBalance balance2 = (BankBalance) AvroUtils.readJsonFile(jsonFileName, BankBalance.getClassSchema());
             System.out.println(balance2);
+
+            balance2.getEventHeader().setSource(null);
+
+            AvroUtils.validate(balance2);
         }
         catch (AvroTypeException e){
             e.printStackTrace();

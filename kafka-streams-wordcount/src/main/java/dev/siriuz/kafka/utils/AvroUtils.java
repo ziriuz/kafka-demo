@@ -40,9 +40,7 @@ public class AvroUtils {
         try (DataFileWriter<GenericRecord> dataFileWriter = new DataFileWriter<>(datumWriter)) {
             dataFileWriter.create(record.getSchema(), new File(fileName));
             dataFileWriter.append(record);
-            System.out.println("Written customer-generic.avro");
         } catch (IOException e) {
-            System.out.println("Couldn't write file");
             e.printStackTrace();
         }
     }
@@ -61,8 +59,7 @@ public class AvroUtils {
 
     public static void writeJsonFileGeneric(GenericRecord record, String fileName){
         final DatumWriter<GenericRecord> datumWriter = new GenericDatumWriter<>(record.getSchema());
-        try {
-            OutputStream stream = Files.newOutputStream(Paths.get(fileName));
+        try (OutputStream stream = Files.newOutputStream(Paths.get(fileName))){
             Encoder encoder =  EncoderFactory.get().jsonEncoder(record.getSchema(), stream);
             datumWriter.write(record, encoder);
             encoder.flush();
@@ -85,13 +82,33 @@ public class AvroUtils {
 
     public static void writeJsonFile(SpecificRecord record, String fileName, Schema schema){
         specificDatumWriter.setSchema(schema);
-        try {
-            OutputStream stream = Files.newOutputStream(Paths.get(fileName));
+        try (OutputStream stream = Files.newOutputStream(Paths.get(fileName))){
             Encoder encoder =  EncoderFactory.get().jsonEncoder(schema, stream);
             specificDatumWriter.write(record, encoder);
             encoder.flush();
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    public static SpecificRecord validate(SpecificRecord record){
+        specificDatumWriter.setSchema(record.getSchema());
+        specificDatumReader.setSchema(record.getSchema());
+
+        SpecificRecord validRecord;
+
+        try (ByteArrayOutputStream out = new ByteArrayOutputStream()){
+
+            Encoder encoder = EncoderFactory.get().binaryEncoder(out, null);
+            specificDatumWriter.write(record, encoder);
+            encoder.flush();
+            Decoder decoder = DecoderFactory.get().binaryDecoder(out.toByteArray(), null);
+            validRecord = specificDatumReader.read(null, decoder);
+
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        return validRecord;
+
     }
 }

@@ -1,1 +1,1 @@
-{"eventHeader":{"source":{"string":"Producer 01"},"info":{"string":"json validation against avro schema sample"},"sendTime":1681077926482},"account":"123412341234","amount":100,"timestamp":1681077926482}
+{"eventHeader":{"source":"Producer 01","info":{"string":"json validation against avro schema sample"},"sendTime":1681670350428},"account":"123412341234","amount":100,"timestamp":1681670350428}

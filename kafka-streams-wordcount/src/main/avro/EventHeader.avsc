@@ -4,7 +4,7 @@
      "name": "EventHeader",
      "doc": "Avro Schema for Event header, includes metadata of event",
      "fields": [
-       { "name": "source", "type": ["null","string"], "default": null, "doc": "source of event" },
+       { "name": "source", "type": "string", "doc": "source of event" },
        { "name": "info", "type": ["null","string"], "default": null, "doc": "Additional meta info" },
        { "name": "sendTime", "type": "long", "doc": "Timestamp of the event" }
      ]
