@@ -1,0 +1,10 @@
+{
+     "type": "record",
+     "namespace": "dev.siriuz.model",
+     "name": "ActionCompleted",
+     "doc": "Avro Schema for demo Action completed event",
+     "fields": [
+       { "name": "requestId", "type": "string", "doc": "Request identifier" },
+       { "name": "status", "type": "string", "doc": "Status of operation SUCCESS, ERROR. Just string for demo purposes" }
+     ]
+}

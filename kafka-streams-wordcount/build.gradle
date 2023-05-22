@@ -29,12 +29,12 @@ dependencies {
     implementation 'io.confluent:kafka-avro-serializer:7.3.2'
 
     implementation 'com.github.javafaker:javafaker:1.0.2'
-    implementation 'com.google.code.gson:gson:2.10'
-    implementation 'io.projectreactor:reactor-core:3.5.3'
+    implementation 'com.google.code.gson:gson:2.10.1'
+    implementation 'io.projectreactor:reactor-core:3.5.4'
 
-    testImplementation 'io.projectreactor:reactor-test:3.5.3'
-    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.8.1'
-    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.8.1'
+    testImplementation 'io.projectreactor:reactor-test:3.5.4'
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.9.2'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.9.2'
 
     compileOnly 'org.projectlombok:lombok:1.18.26'
     annotationProcessor 'org.projectlombok:lombok:1.18.26'

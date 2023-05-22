@@ -1,0 +1,10 @@
+{
+     "type": "record",
+     "namespace": "dev.siriuz.model",
+     "name": "ActionRequested",
+     "doc": "Avro Schema for some Action requested event",
+     "fields": [
+       { "name": "requestId", "type": "string", "doc": "Request identifier" },
+       { "name": "payload", "type": "string", "doc": "Body of request is just string for demo purposes" }
+     ]
+}
