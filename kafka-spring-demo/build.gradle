@@ -1,6 +1,6 @@
 plugins {
     id 'java'
-    id 'org.springframework.boot' version '3.0.7'
+    id 'org.springframework.boot' version "$springBootVersion"
     id 'io.spring.dependency-management' version '1.1.0'
     id "com.github.davidmc24.gradle.plugin.avro" version '1.6.0'
 }
@@ -8,6 +8,11 @@ plugins {
 group 'dev.siriuz'
 version '1.0-SNAPSHOT'
 sourceCompatibility = '17'
+
+ext {
+    avroVersion='1.11.1'
+    avroSerializerVersion='7.3.2'
+}
 
 repositories {
     mavenCentral()
@@ -26,24 +31,26 @@ sourceSets {
 }
 
 dependencies {
-    implementation 'org.springframework.boot:spring-boot-starter'
+    implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'org.springframework.kafka:spring-kafka'
-    implementation 'org.apache.avro:avro:1.11.1'
-    implementation 'io.confluent:kafka-avro-serializer:7.3.2'
+    implementation "org.apache.avro:avro:$avroVersion"
+    implementation "io.confluent:kafka-avro-serializer:$avroSerializerVersion"
+    implementation "org.projectlombok:lombok"
 
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.kafka:spring-kafka-test'
 
-    //mockImplementation 'org.springframework.kafka:spring-kafka'
-    //mockImplementation 'org.apache.avro:avro:1.11.1'
-    //mockImplementation 'io.confluent:kafka-avro-serializer:7.3.2'
+    mockImplementation 'org.springframework.boot:spring-boot-starter'
+    mockImplementation 'org.springframework.kafka:spring-kafka'
+    mockImplementation "org.apache.avro:avro:$avroVersion"
+    mockImplementation "io.confluent:kafka-avro-serializer:$avroSerializerVersion"
 
 }
 
-// dependencies declaration
 configurations {
-    mockImplementation.extendsFrom(implementation)
-    mockRuntimeOnly.extendsFrom(runtimeOnly)
+    // to extend dependencies of mock source set from main
+    //mockImplementation.extendsFrom(implementation)
+    //mockRuntimeOnly.extendsFrom(runtimeOnly)
 }
 
 test {

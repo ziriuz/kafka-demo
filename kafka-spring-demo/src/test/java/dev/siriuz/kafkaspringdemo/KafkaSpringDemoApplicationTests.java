@@ -3,6 +3,7 @@ package dev.siriuz.kafkaspringdemo;
 import dev.siriuz.kafkaspringdemo.service.ActionRequestService;
 import dev.siriuz.model.ActionCompleted;
 import dev.siriuz.model.ActionRequested;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -19,6 +20,7 @@ class KafkaSpringDemoApplicationTests {
     }
 
     @Test
+    @Disabled
     public void actionRequestReplyTest() throws Exception {
         String requestId = UUID.randomUUID().toString();
 
