@@ -2,6 +2,7 @@ package dev.siriuz.kafkaspringdemo.controller;
 
 import dev.siriuz.kafkaspringdemo.dto.ActionCompletedResponse;
 import dev.siriuz.kafkaspringdemo.dto.ActionRequest;
+import dev.siriuz.kafkaspringdemo.service.ActionRequestReactiveService;
 import dev.siriuz.kafkaspringdemo.service.ActionRequestService;
 import dev.siriuz.kafkaspringdemo.util.DtoUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,11 +16,22 @@ public class ActionController {
     @Autowired
     ActionRequestService service;
 
+    @Autowired
+    ActionRequestReactiveService actionProcessor;
     @PostMapping("action")
     public ActionCompletedResponse action(@RequestBody ActionRequest request){
 
         return DtoUtils.toTdo(
                 service.sendActionRequest(request.getRequestId(), DtoUtils.toAvro(request))
+        );
+
+    }
+
+    @PostMapping("do")
+    public ActionCompletedResponse actionReactive(@RequestBody ActionRequest request){
+
+        return DtoUtils.toTdo(
+                actionProcessor.processActionRequest(request.getRequestId(), DtoUtils.toAvro(request))
         );
 
     }

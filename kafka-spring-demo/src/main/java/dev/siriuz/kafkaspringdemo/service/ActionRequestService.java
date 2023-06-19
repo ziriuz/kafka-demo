@@ -25,7 +25,7 @@ public class ActionRequestService {
     @Autowired
     ReplyingKafkaTemplate<String, ActionRequested, ActionCompleted> template;
 
-    @Value("${kafka.topic.action.requested}")
+    @Value("${kafka.topic.demo.action.requested}")
     private String ACTION_REQUESTED_TOPIC;
 
     public ActionCompleted sendActionRequest(String key, ActionRequested request) {
@@ -33,6 +33,7 @@ public class ActionRequestService {
         System.out.printf(">>>>> Sending Action Request %s: %s%n", key, request);
 
         ProducerRecord<String, ActionRequested> record = new ProducerRecord<>(ACTION_REQUESTED_TOPIC, key ,request);
+        record.headers().add("SESSION_ID", UUID.randomUUID().toString().getBytes());
         RequestReplyFuture<String, ActionRequested, ActionCompleted> replyFuture = template.sendAndReceive(record);
         SendResult<String, ActionRequested> sendResult;
 

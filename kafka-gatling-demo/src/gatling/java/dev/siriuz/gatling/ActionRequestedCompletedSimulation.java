@@ -68,7 +68,7 @@ public class ActionRequestedCompletedSimulation extends Simulation {
     {
         setUp(
                 actionApi.injectOpen(
-                        rampUsersPerSec(50).to(100).during(Duration.ofSeconds(20)).randomized()
+                        rampUsersPerSec(5).to(6).during(Duration.ofSeconds(2)).randomized()
                 )
         ).protocols(httpProtocol);
     }

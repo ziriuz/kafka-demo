@@ -1,5 +1,6 @@
 package dev.siriuz.kafkaspringdemo.mock.config;
 
+import dev.siriuz.kafkaspringdemo.mock.service.ActionCompletedProducerInterceptor;
 import dev.siriuz.model.ActionCompleted;
 import io.confluent.kafka.serializers.KafkaAvroDeserializer;
 import io.confluent.kafka.serializers.KafkaAvroSerializer;
@@ -31,9 +32,20 @@ public class KafkaSpringConfig {
         return new KafkaTemplate<>(producerFactory);
     }
 
-    @Bean
-    ConcurrentKafkaListenerContainerFactory<String, ActionCompleted>
-    kafkaListenerContainerFactory(ConsumerFactory<String, ActionCompleted> consumerFactory,
+    public static final String DEFAULT_LISTENER_CONTAINER_FACTORY = "DEFAULT_LISTENER_CONTAINER_FACTORY";
+    @Bean(DEFAULT_LISTENER_CONTAINER_FACTORY)
+    public ConcurrentKafkaListenerContainerFactory<String, ActionCompleted>
+    kafkaListenerContainerFactory(ConsumerFactory<String, ActionCompleted> consumerFactory) {
+        ConcurrentKafkaListenerContainerFactory<String, ActionCompleted> factory =
+                new ConcurrentKafkaListenerContainerFactory<>();
+        factory.setConsumerFactory(consumerFactory);
+        return factory;
+    }
+
+    public static final String REPLY_LISTENER_CONTAINER_FACTORY = "REPLY_LISTENER_CONTAINER_FACTORY";
+    @Bean(REPLY_LISTENER_CONTAINER_FACTORY)
+    public ConcurrentKafkaListenerContainerFactory<String, ActionCompleted>
+    kafkaReplyListenerContainerFactory(ConsumerFactory<String, ActionCompleted> consumerFactory,
                      KafkaTemplate<String, ActionCompleted> kafkaTemplate) {
         ConcurrentKafkaListenerContainerFactory<String, ActionCompleted> factory =
                 new ConcurrentKafkaListenerContainerFactory<>();
@@ -43,7 +55,7 @@ public class KafkaSpringConfig {
     }
 
     @Bean
-    ProducerFactory<String, ActionCompleted> producerFactory(){
+    public ProducerFactory<String, ActionCompleted> producerFactory(){
         return new DefaultKafkaProducerFactory<>(producerProps());
     }
 
@@ -61,6 +73,7 @@ public class KafkaSpringConfig {
         props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, KafkaAvroSerializer.class);
         props.put(SCHEMA_REGISTRY_URL_CONFIG, "http://localhost:8081");
         props.put(SPECIFIC_AVRO_READER_CONFIG, true);
+        props.put(ProducerConfig.INTERCEPTOR_CLASSES_CONFIG, ActionCompletedProducerInterceptor.class.getName());
         return props;
     }
 

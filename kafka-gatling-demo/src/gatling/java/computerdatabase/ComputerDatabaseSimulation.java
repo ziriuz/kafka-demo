@@ -15,7 +15,7 @@ import java.util.concurrent.ThreadLocalRandom;
  *   <li><a href="https://gatling.io/docs/gatling/tutorials/advanced">Gatling advanced tutorial</a>
  * </ul>
  */
-public class ComputerDatabaseSimulation {//extends Simulation {
+public class ComputerDatabaseSimulation extends Simulation {
 
     FeederBuilder<String> feeder = csv("search.csv").random();
 
@@ -94,9 +94,9 @@ public class ComputerDatabaseSimulation {//extends Simulation {
     ScenarioBuilder admins = scenario("Admins").exec(search, browse, edit);
 
     {
-        /*setUp(
-            users.injectOpen(rampUsers(10).during(10)),
-            admins.injectOpen(rampUsers(2).during(10))
-        ).protocols(httpProtocol);*/
+        setUp(
+            users.injectOpen(rampUsers(10).during(2)),
+            admins.injectOpen(rampUsers(2).during(2))
+        ).protocols(httpProtocol);
     }
 }
