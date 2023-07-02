@@ -1,12 +1,20 @@
 package dev.siriuz.kafkaspringdemo;
 
+import dev.siriuz.kafkaspringdemo.domain.model.ActionResult;
 import dev.siriuz.kafkaspringdemo.service.ActionCompletedSubscriber;
+import dev.siriuz.kafkaspringdemo.service.CorrelatedMessage;
+import dev.siriuz.kafkaspringdemo.service.ReplyingSubscriber;
+import dev.siriuz.kafkaspringdemo.util.DtoUtils;
 import dev.siriuz.model.ActionCompleted;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.Sinks;
+
+import java.time.Duration;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 public class ReactorTest {
@@ -90,8 +98,71 @@ public class ReactorTest {
         return ActionCompleted.newBuilder()
                 .setCorrelationId(requestId)
                 .setRequestId(requestId)
-                .setStatus("DEMO_SUCCESS")
-                .build();
+                .setStatus("DEMO_SUCCESS").build();
+    }
+
+    private CorrelatedMessage<String, ActionCompleted> buildCorrelatedEvent(String requestId){
+        return new CorrelatedMessage<>() {
+            @Override
+            public String getCorrelationId() {
+                return requestId;
+            }
+            @Override
+            public ActionCompleted getPayload() {
+                return ActionCompleted.newBuilder()
+                        .setCorrelationId(requestId)
+                        .setRequestId(requestId)
+                        .setStatus("DEMO_SUCCESS").build();
+            }
+            public String toString(){
+                return String.format("{correlationId: %s, status: DEMO_SUCCESS}", requestId);
+            }
+        };
+    }
+
+    @Test
+    public void replyingSubscriberTest() throws InterruptedException, ExecutionException, TimeoutException {
+
+        Sinks.Many<CorrelatedMessage<String, ActionCompleted>> actionCompletedSink = Sinks.many()
+                .multicast()
+                .onBackpressureBuffer();
+
+        Flux<CorrelatedMessage<String, ActionCompleted>> actionCompletedFlux = actionCompletedSink.asFlux()
+                .doOnNext(actionCompleted -> System.out.println(
+                        "[DEBUG] (" + Thread.currentThread().getName() + ") Emitted event with requestId:" +
+                                actionCompleted.getPayload().getRequestId()
+                ))
+                .doOnComplete(
+                        () -> System.out.println(
+                                "[DEBUG] (" + Thread.currentThread().getName() + ") Flux completed:"
+                        ))
+                ;
+
+        ReplyingSubscriber<String, ActionCompleted, ActionResult> subscriber =
+                new ReplyingSubscriber<>("000", DtoUtils::toEntity,Duration.ofSeconds(2));
+
+
+
+        CompletableFuture.runAsync(() ->
+                {
+                    try {
+                        TimeUnit.SECONDS.sleep(1);
+                    } catch (InterruptedException e) {
+                        throw new RuntimeException(e);
+                    }
+                    actionCompletedSink.tryEmitNext(buildCorrelatedEvent("000"));
+                }
+        );
+
+        actionCompletedFlux
+                .filter(actionCompleted -> actionCompleted.getPayload().getRequestId().equals("000"))
+                .flatMap(Mono::just)
+                .subscribe(subscriber);
+
+        System.out.println(subscriber.getResult());
+
+        Thread.sleep(3000);
+
     }
 
 }

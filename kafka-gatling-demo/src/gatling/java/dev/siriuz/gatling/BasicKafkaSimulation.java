@@ -20,7 +20,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
-public class BasicKafkaSimulation extends Simulation {
+public class BasicKafkaSimulation {//extends Simulation {
     private final KafkaProtocolBuilder kafkaConf = kafka()
             .topic("test.requested")
             .properties(Map.of(ProducerConfig.ACKS_CONFIG, "1"));
@@ -62,14 +62,14 @@ public class BasicKafkaSimulation extends Simulation {
                 return session;
             });
 
-    {
-        setUp( scn.injectOpen(
-                        constantUsersPerSec(5).during(Duration.ofSeconds(2)),
-                        rampUsersPerSec(10).to(20).during(Duration.ofSeconds(2)).randomized()
-                    )
-             )
-                //.normalPausesWithStdDevDuration(Duration.ofMillis(500))
-                .protocols(kafkaProtocol)
-                .maxDuration(Duration.ofSeconds(5));
-    }
+//    {
+//        setUp( scn.injectOpen(
+//                        constantUsersPerSec(5).during(Duration.ofSeconds(2)),
+//                        rampUsersPerSec(10).to(20).during(Duration.ofSeconds(2)).randomized()
+//                    )
+//             )
+//                //.normalPausesWithStdDevDuration(Duration.ofMillis(500))
+//                .protocols(kafkaProtocol)
+//                .maxDuration(Duration.ofSeconds(5));
+//    }
 }

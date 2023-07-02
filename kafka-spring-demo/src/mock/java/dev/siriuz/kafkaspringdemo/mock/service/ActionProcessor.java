@@ -3,34 +3,41 @@ package dev.siriuz.kafkaspringdemo.mock.service;
 import dev.siriuz.kafkaspringdemo.mock.config.KafkaSpringConfig;
 import dev.siriuz.model.ActionCompleted;
 import dev.siriuz.model.ActionRequested;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.clients.producer.ProducerInterceptor;
 import org.apache.kafka.clients.producer.ProducerRecord;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.apache.kafka.clients.producer.RecordMetadata;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.annotation.KafkaListener;
-import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.handler.annotation.SendTo;
 import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.stereotype.Component;
 
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.*;
 
 @Component
-public class ActionProcessor {
+@Slf4j
+public class ActionProcessor implements ProducerInterceptor<String, ActionCompleted> {
 
-    @Value("${kafka.topic.action.completed}")
-    private String replyTopic;
+    private final ConcurrentMap<String, ConsumerRecord<String, ActionRequested> > requestsCache = new ConcurrentHashMap<>();
 
-    @Autowired
-    KafkaTemplate<String, ActionCompleted> kafkaTemplate;
+    @Value("${kafka.topic.demo.action.completed}")
+    private String DEMO_ACTION_COMPLETED_TOPIC;
 
     @KafkaListener(groupId="${kafka.consumer.group-id}", topics = "${kafka.topic.demo.action.requested}",
                    containerFactory = KafkaSpringConfig.REPLY_LISTENER_CONTAINER_FACTORY)
     @SendTo("${kafka.topic.demo.action.completed}")
-    public Message<ActionCompleted> listen(ConsumerRecord<String, ActionRequested> consumerRecord) {
+    public Message<ActionCompleted> onMessage(ConsumerRecord<String, ActionRequested> consumerRecord) {
+
+        String correlationId = UUID.nameUUIDFromBytes(consumerRecord.headers().lastHeader("kafka_correlationId").value()).toString();
+        System.out.println("======ActionProcessor consumer======");
+        log.info("topic <{}>, key <{}>, correlationId <{}>: Action request consumed: {}",
+                consumerRecord.topic(),consumerRecord.key(), correlationId, consumerRecord.value());
+        this.requestsCache.put(correlationId, consumerRecord);
 
         ActionCompleted response = ActionCompleted.newBuilder()
                 .setCorrelationId(consumerRecord.value().getCorrelationId())
@@ -42,35 +49,40 @@ public class ActionProcessor {
                 .build();
     }
 
-    @KafkaListener(groupId="${kafka.consumer.id}", topics = "${kafka.topic.action.requested}",
-                   containerFactory = KafkaSpringConfig.DEFAULT_LISTENER_CONTAINER_FACTORY)
-    public void process(ConsumerRecord<String, ActionRequested> consumerRecord) {
 
-        String correlationId = consumerRecord.value().getCorrelationId();
-        System.out.println("[INFO] <" + correlationId + "> Action request consumed: " + consumerRecord.value());
 
-        ActionCompleted response = ActionCompleted.newBuilder()
-                .setCorrelationId(correlationId)
-                .setRequestId(consumerRecord.value().getRequestId())
-                .setStatus("DEMO_SUCCESS")
-                .build();
+    @Override
+    public ProducerRecord<String, ActionCompleted> onSend(ProducerRecord<String, ActionCompleted> record) {
 
-        ProducerRecord<String, ActionCompleted> record = new ProducerRecord<>(replyTopic, consumerRecord.key(), response);
-        record.headers().add("SESSION_ID", consumerRecord.headers().lastHeader("SESSION_ID").value());
+        if (!record.topic().equals(DEMO_ACTION_COMPLETED_TOPIC))
+            return record;
 
-        System.out.println("[INFO] <" + correlationId + "> Sending response: " + response);
-        try {
-            kafkaTemplate.send(record).get(1, TimeUnit.SECONDS);
-        } catch (InterruptedException e) {
-            System.out.println("[ERROR] <" + correlationId + "> process interrupted");
-            e.printStackTrace();
-            Thread.currentThread().interrupt();
-        } catch (ExecutionException e) {
-            System.out.println("[ERROR] <" + correlationId + "> process failed: " + e.getMessage());
-            e.printStackTrace();
-        } catch (TimeoutException e) {
-            System.out.println("[ERROR] <" + correlationId + "> process failed to send response within 1 sec");
-            e.printStackTrace();
+        String correlationId = UUID.nameUUIDFromBytes(record.headers().lastHeader("kafka_correlationId").value()).toString();
+        ConsumerRecord<String, ActionRequested> consumerRecord = this.requestsCache.remove(correlationId);
+
+        if (consumerRecord != null) {
+            log.info("topic <{}>, key <{}>, correlationId <{}>: sending Action completed event: {}",
+                    record.topic(),consumerRecord.key(), correlationId, record.value());
+            return new ProducerRecord<>(record.topic(), consumerRecord.key(), record.value());
         }
+
+        log.info("topic <{}>, key <{}>, correlationId <{}>: sending Action completed event: {}",
+                record.topic(),record.key(), correlationId, record.value());
+        return record;
+    }
+
+    @Override
+    public void onAcknowledgement(RecordMetadata metadata, Exception exception) {
+
+    }
+
+    @Override
+    public void close() {
+
+    }
+
+    @Override
+    public void configure(Map<String, ?> configs) {
+
     }
 }

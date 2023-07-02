@@ -19,9 +19,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 @Service
-public class ActionRequestService {
+public class ActionProcessorSpringReplyingTemplate {
 
-    private static final Logger logger = LoggerFactory.getLogger(ActionRequestService.class);
+    private static final Logger logger = LoggerFactory.getLogger(ActionProcessorSpringReplyingTemplate.class);
     @Autowired
     ReplyingKafkaTemplate<String, ActionRequested, ActionCompleted> template;
 
@@ -42,7 +42,7 @@ public class ActionRequestService {
             sendResult.getProducerRecord().headers().forEach(
                     header -> System.out.printf(">>>>>>>> Request header %s: %s%n", header.key(), new String(header.value()))
             );
-            ConsumerRecord<String, ActionCompleted> consumerRecord = replyFuture.get(10, TimeUnit.SECONDS);
+            ConsumerRecord<String, ActionCompleted> consumerRecord = replyFuture.get(30, TimeUnit.SECONDS);
 
             System.out.printf(">>>>> Received Action Completed %s: %s%n", consumerRecord.key(), consumerRecord.value());
             consumerRecord.headers().forEach(

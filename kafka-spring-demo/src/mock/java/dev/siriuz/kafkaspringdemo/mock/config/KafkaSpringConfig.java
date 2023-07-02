@@ -2,6 +2,7 @@ package dev.siriuz.kafkaspringdemo.mock.config;
 
 import dev.siriuz.kafkaspringdemo.mock.service.ActionCompletedProducerInterceptor;
 import dev.siriuz.model.ActionCompleted;
+import dev.siriuz.kafkaspringdemo.mock.service.ActionProcessor;
 import io.confluent.kafka.serializers.KafkaAvroDeserializer;
 import io.confluent.kafka.serializers.KafkaAvroSerializer;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
@@ -73,7 +74,12 @@ public class KafkaSpringConfig {
         props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, KafkaAvroSerializer.class);
         props.put(SCHEMA_REGISTRY_URL_CONFIG, "http://localhost:8081");
         props.put(SPECIFIC_AVRO_READER_CONFIG, true);
-        props.put(ProducerConfig.INTERCEPTOR_CLASSES_CONFIG, ActionCompletedProducerInterceptor.class.getName());
+        props.put(ProducerConfig.INTERCEPTOR_CLASSES_CONFIG,
+                ActionCompletedProducerInterceptor.class.getName() + "," +
+                        ActionProcessor.class.getName()
+
+
+        );
         return props;
     }
 

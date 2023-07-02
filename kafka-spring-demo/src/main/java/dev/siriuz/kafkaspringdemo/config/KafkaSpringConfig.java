@@ -1,6 +1,6 @@
 package dev.siriuz.kafkaspringdemo.config;
 
-import dev.siriuz.kafkaspringdemo.service.ActionCompletedListener;
+import dev.siriuz.kafkaspringdemo.service.ActionProcessorCustomReplyingTemplate;
 import dev.siriuz.model.ActionCompleted;
 import dev.siriuz.model.ActionRequested;
 import io.confluent.kafka.serializers.KafkaAvroDeserializer;
@@ -48,7 +48,8 @@ public class KafkaSpringConfig {
 
     @Bean
     public ConcurrentMessageListenerContainer<String, ActionCompleted> replyingContainer(
-            ConcurrentKafkaListenerContainerFactory<String, ActionCompleted> kafkaListenerContainerFactory) {
+            ConcurrentKafkaListenerContainerFactory<String, ActionCompleted> kafkaListenerContainerFactory)
+    {
         ConcurrentMessageListenerContainer<String, ActionCompleted>
                 repliesContainer = kafkaListenerContainerFactory.createContainer(ACTION_COMPLETED_TOPIC);
         repliesContainer.getContainerProperties().setGroupId(CONSUMER_GROUP_ID);
@@ -57,9 +58,10 @@ public class KafkaSpringConfig {
     }
 
     public static final String REPLYING_LISTENER_CONTAINER_FACTORY = "REPLYING_LISTENER_CONTAINER_FACTORY";
-    @Bean(name = LISTENER_CONTAINER_FACTORY)
-    ConcurrentKafkaListenerContainerFactory<String, ActionCompleted>
-    kafkaReplyingListenerContainerFactory(ConsumerFactory<String, ActionCompleted> consumerFactory) {
+    @Bean(name = REPLYING_LISTENER_CONTAINER_FACTORY)
+    public ConcurrentKafkaListenerContainerFactory<String, ActionCompleted>
+            kafkaReplyingListenerContainerFactory(ConsumerFactory<String, ActionCompleted> consumerFactory)
+    {
         ConcurrentKafkaListenerContainerFactory<String, ActionCompleted> factory =
                 new ConcurrentKafkaListenerContainerFactory<>();
         factory.setConsumerFactory(consumerFactory);
@@ -106,9 +108,19 @@ public class KafkaSpringConfig {
         return new KafkaTemplate<String, SpecificRecord>(new DefaultKafkaProducerFactory<>(producerProps()));
     }
 
-    public static final String LISTENER_CONTAINER_FACTORY = "LISTENER_CONTAINER_FACTORY";
-    @Bean(name = LISTENER_CONTAINER_FACTORY)
+    public static final String BATCH_LISTENER_CONTAINER_FACTORY = "BATCH_LISTENER_CONTAINER_FACTORY";
+    @Bean(name = BATCH_LISTENER_CONTAINER_FACTORY)
     ConcurrentKafkaListenerContainerFactory<String, SpecificRecord> kafkaListenerContainerFactory() {
+        ConcurrentKafkaListenerContainerFactory<String, SpecificRecord> factory =
+                new ConcurrentKafkaListenerContainerFactory<>();
+        factory.setConsumerFactory(new DefaultKafkaConsumerFactory<>(consumerProps()));
+        factory.setBatchListener(true);
+        return factory;
+    }
+
+    public static final String DEFAULT_LISTENER_CONTAINER_FACTORY = "DEFAULT_LISTENER_CONTAINER_FACTORY";
+    @Bean(name = DEFAULT_LISTENER_CONTAINER_FACTORY)
+    ConcurrentKafkaListenerContainerFactory<String, SpecificRecord> defaultKafkaListenerContainerFactory() {
         ConcurrentKafkaListenerContainerFactory<String, SpecificRecord> factory =
                 new ConcurrentKafkaListenerContainerFactory<>();
         factory.setConsumerFactory(new DefaultKafkaConsumerFactory<>(consumerProps()));
@@ -116,9 +128,10 @@ public class KafkaSpringConfig {
     }
 
 
-    @Bean
-    public ActionCompletedListener listener() {
-        return new ActionCompletedListener();
+
+    // @Bean
+    public ActionProcessorCustomReplyingTemplate listener() {
+        return new ActionProcessorCustomReplyingTemplate();
     }
 
 }

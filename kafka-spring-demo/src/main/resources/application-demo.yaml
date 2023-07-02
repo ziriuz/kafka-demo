@@ -18,6 +18,7 @@ spring:
         interceptor.classes: io.confluent.monitoring.clients.interceptor.MonitoringProducerInterceptor
     template:
       default-topic:
+
 logging:
   level:
     root: info

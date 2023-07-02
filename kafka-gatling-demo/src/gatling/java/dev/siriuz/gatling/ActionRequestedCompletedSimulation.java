@@ -22,7 +22,7 @@ import static io.gatling.javaapi.http.HttpDsl.status;
 public class ActionRequestedCompletedSimulation extends Simulation {
 
     private final Iterator<Map<String, Object>> feeder =
-            Stream.generate((Supplier<Map<String, Object>>) () -> Collections.singletonMap("request_id", UUID.randomUUID().toString())
+            Stream.generate((Supplier<Map<String, Object>>) () -> Collections.singletonMap("request_id", UUID.randomUUID().toString().replace("-",""))
             ).iterator();
 
     String bodyJsonTemplate = """
@@ -35,7 +35,7 @@ public class ActionRequestedCompletedSimulation extends Simulation {
             .on(feed(feeder)
                     .exec(
                         http("ActionRequest")
-                            .post("/action")
+                            .post("/react")
                                 .asJson()
                                 .body(StringBody(bodyJsonTemplate))
                             .check(
@@ -68,7 +68,7 @@ public class ActionRequestedCompletedSimulation extends Simulation {
     {
         setUp(
                 actionApi.injectOpen(
-                        rampUsersPerSec(5).to(6).during(Duration.ofSeconds(2)).randomized()
+                        rampUsersPerSec(110).to(120).during(Duration.ofSeconds(20)).randomized()
                 )
         ).protocols(httpProtocol);
     }

@@ -50,6 +50,8 @@ dependencies {
     mockImplementation 'org.springframework.kafka:spring-kafka'
     mockImplementation "org.apache.avro:avro:$avroVersion"
     mockImplementation "io.confluent:kafka-avro-serializer:$avroSerializerVersion"
+    mockCompileOnly "org.projectlombok:lombok"
+    mockAnnotationProcessor "org.projectlombok:lombok"
 
 }
 

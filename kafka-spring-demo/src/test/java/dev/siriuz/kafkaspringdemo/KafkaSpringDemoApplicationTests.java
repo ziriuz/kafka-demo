@@ -1,7 +1,9 @@
 package dev.siriuz.kafkaspringdemo;
 
-import dev.siriuz.kafkaspringdemo.service.ActionRequestReactiveService;
-import dev.siriuz.kafkaspringdemo.service.ActionRequestService;
+import dev.siriuz.kafkaspringdemo.domain.model.ActionResult;
+import dev.siriuz.kafkaspringdemo.domain.model.DomainActionRequest;
+import dev.siriuz.kafkaspringdemo.service.ActionProcessorReactive;
+import dev.siriuz.kafkaspringdemo.service.ActionProcessorSpringReplyingTemplate;
 import dev.siriuz.model.ActionCompleted;
 import dev.siriuz.model.ActionRequested;
 import org.junit.jupiter.api.Disabled;
@@ -15,10 +17,10 @@ import java.util.UUID;
 class KafkaSpringDemoApplicationTests {
 
     @Autowired
-    ActionRequestService underTest;
+    ActionProcessorSpringReplyingTemplate underTest;
 
     @Autowired
-    ActionRequestReactiveService reactiveService;
+    ActionProcessorReactive reactiveService;
 
     @Test
     void contextLoads() {
@@ -48,13 +50,9 @@ class KafkaSpringDemoApplicationTests {
     public void customRequestResponseTest() {
         String requestId = UUID.randomUUID().toString();
 
-        ActionRequested requestEvent = ActionRequested.newBuilder()
-                .setCorrelationId("0")
-                .setRequestId(requestId)
-                .setPayload("Request to perform some action")
-                .build();
+        DomainActionRequest request = new DomainActionRequest(requestId,"Request to perform some action");
 
-        ActionCompleted result = reactiveService.processActionRequest(requestId, requestEvent);
+        ActionResult result = reactiveService.process(request);
 
         System.out.println(result);
 
