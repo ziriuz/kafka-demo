@@ -33,7 +33,7 @@ public class ActionProcessorCustomReplyingTemplate {
 
     private final String ID = "action-completed-listener";
 
-    private final ConcurrentMap<Object, CompletableFuture<ActionCompleted>> futures = new ConcurrentHashMap<>();
+    private ConcurrentMap<Object, CompletableFuture<ActionCompleted>> futures = new ConcurrentHashMap<>();
 
     private TaskScheduler scheduler = new ThreadPoolTaskScheduler();
 

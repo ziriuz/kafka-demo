@@ -3,6 +3,9 @@ package dev.siriuz.kafkaspringdemo.service;
 import lombok.extern.slf4j.Slf4j;
 import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
+import org.springframework.kafka.requestreply.KafkaReplyTimeoutException;
+import org.springframework.scheduling.TaskScheduler;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -10,10 +13,10 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import java.util.function.Function;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 @Slf4j
-public class ReplyingSubscriber<C, E, R> implements Subscriber<CorrelatedMessage<C, E>> {
+public class ReplyingSubscriber<C, E> implements Subscriber<CorrelatedMessage<C, E>> {
     private Subscription subscription;
     private C correlationId;
     private static final Duration DEFAULT_TIMEOUT = Duration.ofSeconds(5);
@@ -22,27 +25,29 @@ public class ReplyingSubscriber<C, E, R> implements Subscriber<CorrelatedMessage
     private long completionTime;
 
     private CompletableFuture<E> replyFuture;
-    private CompletableFuture<R> responseFuture;
-    private Function<E, R> convert;
+
+    private AtomicBoolean completed = new AtomicBoolean(false);
+
+    private final TaskScheduler timeoutScheduler = new ThreadPoolTaskScheduler();
 
     private ReplyingSubscriber() {
     }
-    public ReplyingSubscriber(C correlationId, Function<E, R> convert) {
-        this(correlationId, convert, DEFAULT_TIMEOUT);
+    public ReplyingSubscriber(C correlationId) {
+        this(correlationId, DEFAULT_TIMEOUT);
     }
-    public ReplyingSubscriber(C correlationId, Function<E, R> convert, Duration timeout) {
+    public ReplyingSubscriber(C correlationId, Duration timeout) {
         this.correlationId = correlationId;
-        this.convert = convert;
         this.timeout = timeout;
+        ((ThreadPoolTaskScheduler) this.timeoutScheduler).initialize();
     }
     @Override
     public void onSubscribe(Subscription subscription) {
         log.debug("<{}>: enter onSubscribe()", correlationId);
         this.subscription = subscription;
-        subscription.request(1); //Flux should be filtered and mapped to Mono
+        this.subscription.request(1); //Flux should be filtered and mapped to Mono
         this.replyFuture = new CompletableFuture<>();
-        this.responseFuture = new CompletableFuture<>();
-        startTime = Instant.now().toEpochMilli();
+        scheduleTimeout();
+        this.startTime = Instant.now().toEpochMilli();
     }
 
     @Override
@@ -50,24 +55,44 @@ public class ReplyingSubscriber<C, E, R> implements Subscriber<CorrelatedMessage
 
         if( event.getCorrelationId().equals(this.correlationId) ){
             log.debug("<{}> subscriber received: {}", correlationId, event.getPayload());
-            subscription.cancel();
+            this.subscription.cancel();
             log.debug("<{}> Subscription canceled as expected result received from stream", correlationId);
             this.replyFuture.complete(event.getPayload());
-            this.responseFuture.complete(convert.apply(event.getPayload()));
-            completionTime = Instant.now().toEpochMilli();
+            this.completed.set(true);
+            this.completionTime = Instant.now().toEpochMilli();
         } else {
-            throw new RuntimeException(this.correlationId + " expected, but " + event.getCorrelationId() + " received. " + " correlationId filter might not be added to publisher pipeline");
+            String message = this.correlationId + " expected, but " + event.getCorrelationId() + " received. " + " correlationId filter might not be added to publisher pipeline";
+            this.replyFuture.completeExceptionally(new IllegalStateException(message));
+            this.completed.set(true);
+            throw new RuntimeException(message);
         }
     }
 
     @Override
     public void onError(Throwable throwable) {
+        if (!this.completed.get()) {
+            this.replyFuture.completeExceptionally(throwable);
+            this.completed.set(true);
+        }
         log.error("<{}> subscriber ERROR: {}", correlationId, throwable.getMessage());
     }
 
     @Override
     public void onComplete() {
         log.error("<{}> publishing completed", correlationId);
+    }
+
+    private void scheduleTimeout() {
+        this.timeoutScheduler.schedule(
+                () -> {
+                    if (!this.completed.get()) {
+                        log.warn("Reply timed out for request with correlationId {}", correlationId);
+                        this.replyFuture.completeExceptionally(new KafkaReplyTimeoutException("Reply timed out"));
+                        this.completed.set(true);
+                    }
+                },
+                Instant.now().plus(this.timeout)
+        );
     }
 
     public void request(){
@@ -80,8 +105,8 @@ public class ReplyingSubscriber<C, E, R> implements Subscriber<CorrelatedMessage
     // TODO: implement scheduler like in spring replying Template
     //       to handle situation when no one call getResult
 
-    public CompletableFuture<R> getFuture() {
-        return responseFuture;
+    public CompletableFuture<E> getFuture() {
+        return replyFuture;
     }
 
     public E getResult() throws TimeoutException {

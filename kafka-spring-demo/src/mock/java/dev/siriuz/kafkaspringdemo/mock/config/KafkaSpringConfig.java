@@ -75,8 +75,8 @@ public class KafkaSpringConfig {
         props.put(SCHEMA_REGISTRY_URL_CONFIG, "http://localhost:8081");
         props.put(SPECIFIC_AVRO_READER_CONFIG, true);
         props.put(ProducerConfig.INTERCEPTOR_CLASSES_CONFIG,
-                ActionCompletedProducerInterceptor.class.getName() + "," +
-                        ActionProcessor.class.getName()
+                ActionProcessor.class.getName()
+
 
 
         );

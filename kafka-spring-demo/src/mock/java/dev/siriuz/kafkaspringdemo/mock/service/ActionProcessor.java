@@ -14,19 +14,20 @@ import org.springframework.messaging.Message;
 import org.springframework.messaging.handler.annotation.SendTo;
 import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.*;
 
-@Component
+@Service
 @Slf4j
 public class ActionProcessor implements ProducerInterceptor<String, ActionCompleted> {
 
-    private final ConcurrentMap<String, ConsumerRecord<String, ActionRequested> > requestsCache = new ConcurrentHashMap<>();
+    private volatile ConcurrentMap<String, ConsumerRecord<String, ActionRequested> > requestsCache = new ConcurrentHashMap<>();
 
-    @Value("${kafka.topic.demo.action.completed}")
-    private String DEMO_ACTION_COMPLETED_TOPIC;
+    //@Value("${kafka.topic.demo.action.completed}:demo.action.completed")
+    private String DEMO_ACTION_COMPLETED_TOPIC="demo.action.completed";
 
     @KafkaListener(groupId="${kafka.consumer.group-id}", topics = "${kafka.topic.demo.action.requested}",
                    containerFactory = KafkaSpringConfig.REPLY_LISTENER_CONTAINER_FACTORY)
@@ -53,7 +54,8 @@ public class ActionProcessor implements ProducerInterceptor<String, ActionComple
 
     @Override
     public ProducerRecord<String, ActionCompleted> onSend(ProducerRecord<String, ActionCompleted> record) {
-
+        log.info("============= Action processor producer interceptor ============");
+        log.info("{}|{}",record.topic(), DEMO_ACTION_COMPLETED_TOPIC);
         if (!record.topic().equals(DEMO_ACTION_COMPLETED_TOPIC))
             return record;
 
@@ -61,7 +63,7 @@ public class ActionProcessor implements ProducerInterceptor<String, ActionComple
         ConsumerRecord<String, ActionRequested> consumerRecord = this.requestsCache.remove(correlationId);
 
         if (consumerRecord != null) {
-            log.info("topic <{}>, key <{}>, correlationId <{}>: sending Action completed event: {}",
+            log.info("topic <{}>, key <{}>, correlationId <{}>: sending updated Action completed event: {}",
                     record.topic(),consumerRecord.key(), correlationId, record.value());
             return new ProducerRecord<>(record.topic(), consumerRecord.key(), record.value());
         }

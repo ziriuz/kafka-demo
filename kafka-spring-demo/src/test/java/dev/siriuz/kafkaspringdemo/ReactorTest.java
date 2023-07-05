@@ -138,15 +138,15 @@ public class ReactorTest {
                         ))
                 ;
 
-        ReplyingSubscriber<String, ActionCompleted, ActionResult> subscriber =
-                new ReplyingSubscriber<>("000", DtoUtils::toEntity,Duration.ofSeconds(2));
+        ReplyingSubscriber<String, ActionCompleted> subscriber =
+                new ReplyingSubscriber<>("000", Duration.ofSeconds(2));
 
 
 
         CompletableFuture.runAsync(() ->
                 {
                     try {
-                        TimeUnit.SECONDS.sleep(1);
+                        TimeUnit.SECONDS.sleep(3);
                     } catch (InterruptedException e) {
                         throw new RuntimeException(e);
                     }

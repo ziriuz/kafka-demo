@@ -3,7 +3,6 @@ package dev.siriuz.kafkaspringdemo.service;
 import dev.siriuz.kafkaspringdemo.config.KafkaSpringConfig;
 import dev.siriuz.kafkaspringdemo.domain.model.ActionResult;
 import dev.siriuz.kafkaspringdemo.domain.model.DomainActionRequest;
-import dev.siriuz.kafkaspringdemo.domain.model.LifecycleResult;
 import dev.siriuz.kafkaspringdemo.domain.port.RequestResponseProcessor;
 import dev.siriuz.kafkaspringdemo.util.DtoUtils;
 import dev.siriuz.model.ActionCompleted;
@@ -26,6 +25,8 @@ import reactor.core.publisher.Sinks;
 import java.time.Duration;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 @Service
@@ -69,15 +70,33 @@ public class ActionProcessorReactive implements RequestResponseProcessor<DomainA
 
     @Override
     public CompletableFuture<ActionResult> processAsync(DomainActionRequest request) {
-        return processActionRequestAsync(DtoUtils.toAvro(request)).getFuture();
+
+        var replyFuture = processActionRequestAsync(DtoUtils.toAvro(request));
+        final CompletableFuture<ActionResult> future = new CompletableFuture<>();
+
+        replyFuture.whenCompleteAsync((event, ex) -> {
+           if (ex == null) {
+               try {
+                   future.complete(DtoUtils.toEntity(event));
+               }
+               catch (Exception ex2) {
+                   future.completeExceptionally(ex2);
+               }
+           }
+           else {
+               future.completeExceptionally(ex);
+           }
+        });
+
+        return future;
     }
 
     private ActionCompleted processActionRequest(ActionRequested request) {
 
         try {
-            var subscriber = processActionRequestAsync(request);
-            var actionCompleted = subscriber.getResult();
-            log.info("<<<<< <{}> Received Action Completed {}: {}", subscriber.getCorrelationId(), actionCompleted.getRequestId(), actionCompleted);
+            var replyFuture = processActionRequestAsync(request);
+            var actionCompleted = replyFuture.get(500, TimeUnit.MILLISECONDS);
+            log.info("<<<<< <{}> Received Action Completed {}: {}", actionCompleted.getCorrelationId(), actionCompleted.getRequestId(), actionCompleted);
             counter++;
             log.info("*********** total requests processed: {} *************", counter);
             return actionCompleted;
@@ -85,10 +104,17 @@ public class ActionProcessorReactive implements RequestResponseProcessor<DomainA
         catch (TimeoutException e) {
             log.error("sending action request failed: {} {}", request, e.getMessage());
             throw new RuntimeException(e);
+        } catch (ExecutionException e) {
+            log.error("Action execution failed: {} {}", request, e.getMessage());
+            throw new RuntimeException(e);
+        } catch (InterruptedException e) {
+            log.error("Action execution was interrupted: {} {}", request, e.getMessage());
+            Thread.currentThread().interrupt();
+            throw new RuntimeException(e);
         }
     }
 
-    private ReplyingSubscriber<String, ActionCompleted, ActionResult> processActionRequestAsync(ActionRequested request) {
+    private CompletableFuture<ActionCompleted> processActionRequestAsync(ActionRequested request) {
 
         String correlationId = UUID.randomUUID().toString();
         String key = request.getRequestId();
@@ -101,7 +127,7 @@ public class ActionProcessorReactive implements RequestResponseProcessor<DomainA
 
         log.info(">>>>> <{}> Sending Action Request {}: {}", correlationId, key, request);
         template.send(record); //TODO: implement send with callback to handle send result
-        return actionCompletedSubscriber;
+        return actionCompletedSubscriber.getFuture();
     }
 
     @KafkaListener(id = "reactive-service-action-listener", topics = "${kafka.topic.action.completed}", groupId = "ActionRequestReactiveService",
@@ -126,27 +152,27 @@ public class ActionProcessorReactive implements RequestResponseProcessor<DomainA
     }
 
 
-    private  ReplyingSubscriber<String, ActionCompleted, ActionResult> subscribeToActionCompletedStream(String correlationId, long timeoutMillis) {
-        var subscriber = new ReplyingSubscriber<String, ActionCompleted, ActionResult>(
-                correlationId,
-                DtoUtils::toEntity,
-                Duration.ofMillis(timeoutMillis));
+    private  ReplyingSubscriber<String, ActionCompleted> subscribeToActionCompletedStream(String correlationId, long timeoutMillis) {
+
+        var subscriber = new ReplyingSubscriber<String, ActionCompleted>(correlationId,Duration.ofMillis(timeoutMillis));
+
         actionCompletedEventStream
                 .filter(actionCompleted -> actionCompleted.getCorrelationId().equals(correlationId))
                 .flatMap(Mono::just)
                 .subscribe(subscriber);
+
         return subscriber;
     }
 
-    private  ReplyingSubscriber<String, LifecycleCompleted, LifecycleResult> subscribeToLifecycleCompletedStream(String correlationId, long timeoutMillis) {
-        var subscriber = new ReplyingSubscriber<String, LifecycleCompleted, LifecycleResult>(
-                correlationId,
-                DtoUtils::toEntity,
-                Duration.ofMillis(timeoutMillis));
+    private  ReplyingSubscriber<String, LifecycleCompleted> subscribeToLifecycleCompletedStream(String correlationId, long timeoutMillis) {
+
+        var subscriber = new ReplyingSubscriber<String, LifecycleCompleted>(correlationId,Duration.ofMillis(timeoutMillis));
+
         lifecycleCompletedEventStream
                 .filter(lifecycleCompleted -> lifecycleCompleted.getCorrelationId().equals(correlationId))
                 .flatMap(Mono::just)
                 .subscribe(subscriber);
+
         return subscriber;
     }
 
